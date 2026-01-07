@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workout Counter</title>
+
+<style>
+  :root{
+    --bg:#0f172a; --card:#111c33; --text:#f8fafc; --muted:rgba(248,250,252,.75);
+    --accent:#38bdf8; --good:#22c55e; --warn:#facc15; --bad:#ef4444;
+    --btnText:#071018; --shadow: 0 12px 28px rgba(0,0,0,.25);
+  }
+  body.light{
+    --bg:#f6f7fb; --card:#ffffff; --text:#0b1220; --muted:rgba(11,18,32,.65);
+    --accent:#0284c7; --good:#16a34a; --warn:#ca8a04; --bad:#dc2626;
+    --btnText:#ffffff; --shadow: 0 10px 22px rgba(2,8,23,.10);
+  }
+
+  body{
+    margin:0;
+    font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:18px;
+    box-sizing:border-box;
+  }
+
+  .app{
+  width:100%;
+  max-width:420px;
+  background: linear-gradient(180deg, #0b1630, #0a1426);
+  border-radius: 22px;
+  padding: 22px 18px 18px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.45);
+}
+
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
+
+h1{
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+
+
+  .toggles{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size: 13px;
+    color: var(--muted);
+    user-select:none;
+  }
+
+  .toggle span{
+  font-size:12px;
+  opacity:.75;
+}
+
+
+  .switch{
+    width:44px; height:26px;
+    border-radius:999px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.10);
+    position:relative;
+    cursor:pointer;
+    flex:none;
+  }
+  body.light .switch{
+    background: rgba(2,8,23,.06);
+    border: 1px solid rgba(2,8,23,.10);
+  }
+
+  .knob{
+    width:20px; height:20px;
+    border-radius:50%;
+    background: var(--text);
+    position:absolute;
+    top:50%;
+    left:3px;
+    transform: translateY(-50%);
+    transition: left .18s ease;
+  }
+
+  .switch[data-on="true"] .knob{ left:21px; }
+  .switch[data-on="true"]{ background: rgba(56,189,248,.25); border-color: rgba(56,189,248,.35); }
+
+  .exercise{
+  font-size:26px;
+  font-weight:800;
+  margin: 10px 0 14px;
+  color:#38bdf8;
+}
+
+  .subline{
+    font-size: 13px;
+    color: var(--muted);
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom: 10px;
+  }
+  .pill{
+  font-size:13px;
+  padding:6px 12px;
+  border-radius:999px;
+  background: rgba(255,255,255,.06);
+}
+
+  body.light .pill{
+    border: 1px solid rgba(2,8,23,.10);
+    background: rgba(2,8,23,.04);
+  }
+
+  .counterWrap{
+  margin: 18px 0 10px;
+}
+
+.counter{
+  font-size: 104px;
+  font-weight: 900;
+  letter-spacing: -3px;
+}
+
+.counterWrap::before{
+  content:"";
+  position:absolute;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(56,189,248,.18), transparent 70%);
+  z-index:-1;
+}
+
+
+  .status{
+    font-size: 18px;
+    margin: 6px 0 12px;
+    min-height: 24px;
+    text-align:center;
+    color: var(--good);
+    font-weight: 650;
+  }
+  .status.warn{ color: var(--warn); }
+  .status.bad{ color: var(--bad); }
+
+  .progress{
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .controls{
+    display:flex;
+    gap: 10px;
+  }
+ .controls button{
+  padding:12px 10px;
+  font-size:15px;
+  border-radius:14px;
+}
+
+.start{ background:#22c55e; }
+.pause{ background:#facc15; }
+.reset{ background:#ef4444; }
+
+  body.light .pause, body.light .reset{ color: var(--btnText); }
+
+  .footerNote{
+  margin-top:14px;
+  font-size:11px;
+  opacity:.55;
+}
+
+  .miniRow{
+  margin-top:12px;
+}
+
+.miniBtn{
+  padding:10px;
+  font-size:14px;
+  background: rgba(255,255,255,.06);
+}
+
+  body.light .miniBtn{
+    background: rgba(2,8,23,.04);
+    border: 1px solid rgba(2,8,23,.10);
+  }
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>Workout Counter</h1>
+
+    <div class="toggles">
+      <div class="toggle" title="Toggle light/dark theme">
+        <span>Theme</span>
+        <div class="switch" id="themeSwitch" data-on="false" role="switch" aria-checked="false">
+          <div class="knob"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exercise" id="exerciseName">—</div>
+
+  <div class="subline">
+    <div class="pill" id="roundInfo">Round —</div>
+    <div class="pill" id="exerciseInfo">Reps — • Pace —</div>
+  </div>
+
+  <div class="counterWrap">
+    <div class="counter" id="repCounter">0</div>
+  </div>
+
+  <div class="status" id="statusText"></div>
+
+  <div class="progress">
+    <div id="exerciseProgress">Exercise 1 / 1</div>
+    <div id="nextUp">Next: —</div>
+  </div>
+
+  <div class="controls">
+    <button class="start" id="startBtn">Start</button>
+    <button class="pause" id="pauseBtn">Pause</button>
+    <button class="reset" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="miniRow">
+    <button class="miniBtn" id="skipBtn">Skip Exercise</button>
+    <button class="miniBtn" id="restartExerciseBtn">Restart Exercise</button>
+  </div>
+
+  <div class="footerNote">
+    Audio + vibration may require a tap to enable on mobile browsers.
+  </div>
+</div>
+
+<script>
+/* ======================
+   WORKOUT JSON (EDIT ME)
+====================== */
+const workout = {
+  workout: [
+    {
+      exercise: "Bhastrika Pranayama",
+      rounds: 3,
+      repsPerRound: 20,
+      secondsPerCount: 2.5,
+      restSecondsBetweenRounds: 20
+    },
+    {
+      exercise: "Breath of Joy",
+      rounds: 3,
+      repsPerRound: 15,
+      secondsPerCount: 3,
+      restSecondsBetweenRounds: 20
+    },
+    {
+      exercise: "Box Breath",
+      rounds: 2,
+      repsPerRound: 40,
+      secondsPerCount: 4,
+      restSecondsBetweenRounds: 10
+    },
+    {
+      exercise: "Nadi Shodhana",
+      rounds: 4,
+      repsPerRound: 20,
+      secondsPerCount: 2,
+      restSecondsBetweenRounds: 10
+    }
+  ]
+};
+
+/* ======================
+   SETTINGS
+====================== */
+const settings = {
+  countdownSeconds: 3,     // ⏱️ Countdown before starting an exercise
+  beepEnabled: true,       // 🔊 Beep each rep
+  hapticEnabled: true,     // 🎯 Vibrate each rep (if supported)
+  beepVolume: 0.35,        // 0..1
+  beepFreq: 880,           // Hz
+  beepMs: 50               // ms
+};
+
+/* ======================
+   STATE
+====================== */
+let exerciseIndex = 0;
+let currentRound = 1;
+let currentRep = 0;
+
+let isPaused = false;
+let isResting = false;
+let isCounting = false;
+
+let repInterval = null;
+let restInterval = null;
+let countdownInterval = null;
+
+let audioCtx = null;
+
+/* ======================
+   ELEMENTS
+====================== */
+const elExerciseName = document.getElementById("exerciseName");
+const elRepCounter = document.getElementById("repCounter");
+const elRoundInfo = document.getElementById("roundInfo");
+const elExerciseInfo = document.getElementById("exerciseInfo");
+const elStatus = document.getElementById("statusText");
+const elExerciseProgress = document.getElementById("exerciseProgress");
+const elNextUp = document.getElementById("nextUp");
+
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const skipBtn = document.getElementById("skipBtn");
+const restartExerciseBtn = document.getElementById("restartExerciseBtn");
+
+const themeSwitch = document.getElementById("themeSwitch");
+
+/* ======================
+   HELPERS
+====================== */
+function getCurrentExercise() {
+  return workout.workout[exerciseIndex];
+}
+
+function safeClearTimers() {
+  if (repInterval) { clearInterval(repInterval); repInterval = null; }
+  if (restInterval) { clearInterval(restInterval); restInterval = null; }
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+}
+
+function setStatus(text, cls="") {
+  elStatus.className = "status" + (cls ? " " + cls : "");
+  elStatus.textContent = text || "";
+}
+
+function updateUI() {
+  const ex = getCurrentExercise();
+
+  elExerciseName.textContent = ex?.exercise ?? "—";
+  elRepCounter.textContent = currentRep;
+
+  if (ex) {
+    elRoundInfo.textContent = `Round ${currentRound} of ${ex.rounds}`;
+    elExerciseInfo.textContent = `Reps ${ex.repsPerRound} • Pace ${ex.secondsPerCount}s`;
+    elExerciseProgress.textContent = `Exercise ${exerciseIndex + 1} / ${workout.workout.length}`;
+
+    const next = workout.workout[exerciseIndex + 1];
+    elNextUp.textContent = `Next: ${next ? next.exercise : "—"}`;
+  } else {
+    elRoundInfo.textContent = `Round —`;
+    elExerciseInfo.textContent = `Reps — • Pace —`;
+    elExerciseProgress.textContent = `Exercise —`;
+    elNextUp.textContent = `Next: —`;
+  }
+}
+
+function canVibrate() {
+  return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
+}
+
+function vibrateShort() {
+  if (!settings.hapticEnabled) return;
+  if (!canVibrate()) return;
+  // Light haptic pulse
+  navigator.vibrate(15);
+}
+
+function ensureAudioContext() {
+  if (!settings.beepEnabled) return null;
+  if (audioCtx && audioCtx.state !== "closed") return audioCtx;
+
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+
+  audioCtx = new Ctx();
+  return audioCtx;
+}
+
+async function unlockAudioIfNeeded() {
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
+  if (ctx.state === "suspended") {
+    try { await ctx.resume(); } catch (e) {}
+  }
+}
+
+function beep() {
+  if (!settings.beepEnabled) return;
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
+
+  if (ctx.state === "suspended") return; // will unlock on user action
+
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = "sine";
+  o.frequency.value = settings.beepFreq;
+
+  g.gain.value = settings.beepVolume;
+
+  o.connect(g);
+  g.connect(ctx.destination);
+
+  o.start();
+  setTimeout(() => {
+    try { o.stop(); } catch(e) {}
+    try { o.disconnect(); g.disconnect(); } catch(e) {}
+  }, settings.beepMs);
+}
+
+function doRepCue() {
+  beep();
+  vibrateShort();
+}
+
+/* ======================
+   FLOW
+====================== */
+function startOrResume() {
+  if (!getCurrentExercise()) return;
+
+  // Unlock audio on a user gesture
+  unlockAudioIfNeeded();
+
+  if (isCounting && isPaused) {
+    isPaused = false;
+    setStatus("Go!");
+    return;
+  }
+
+  if (isCounting || isResting) return;
+
+  beginCountdownThenStart();
+}
+
+function beginCountdownThenStart() {
+  safeClearTimers();
+  isPaused = false;
+  isCounting = false;
+  isResting = false;
+
+  let t = settings.countdownSeconds;
+
+  if (t <= 0) {
+    setStatus("Go!");
+    startRepLoop();
+    return;
+  }
+
+  setStatus(`Starting in ${t}`, "warn");
+  countdownInterval = setInterval(() => {
+    if (isPaused) return;
+
+    t--;
+    if (t > 0) {
+      setStatus(`Starting in ${t}`, "warn");
+      // optional cue
+      // doRepCue();
+    } else {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      setStatus("Go!");
+      startRepLoop();
+    }
+  }, 1000);
+}
+
+function startRepLoop() {
+  const ex = getCurrentExercise();
+  if (!ex) return;
+
+  safeClearTimers();
+  isCounting = true;
+  isResting = false;
+
+  repInterval = setInterval(() => {
+    if (isPaused) return;
+
+    currentRep++;
+    elRepCounter.textContent = currentRep;
+    doRepCue();
+
+    if (currentRep >= ex.repsPerRound) {
+      clearInterval(repInterval);
+      repInterval = null;
+      isCounting = false;
+      handleRoundComplete();
+    }
+  }, ex.secondsPerCount * 1000);
+}
+
+function handleRoundComplete() {
+  const ex = getCurrentExercise();
+  if (!ex) return;
+
+  // Finished all rounds for this exercise => next exercise
+  if (currentRound >= ex.rounds) {
+    setStatus("Exercise complete ✅");
+    goToNextExercise();
+    return;
+  }
+
+  // Rest between rounds
+  isResting = true;
+  let rest = Math.max(0, ex.restSecondsBetweenRounds || 0);
+
+  if (rest <= 0) {
+    currentRound++;
+    currentRep = 0;
+    updateUI();
+    beginCountdownThenStart();
+    return;
+  }
+
+  setStatus(`Rest ${rest}s`, "warn");
+
+  restInterval = setInterval(() => {
+    if (isPaused) return;
+
+    rest--;
+    if (rest > 0) {
+      setStatus(`Rest ${rest}s`, "warn");
+    } else {
+      clearInterval(restInterval);
+      restInterval = null;
+      isResting = false;
+
+      currentRound++;
+      currentRep = 0;
+      updateUI();
+
+      beginCountdownThenStart();
+    }
+  }, 1000);
+}
+
+function goToNextExercise() {
+  safeClearTimers();
+  isCounting = false;
+  isResting = false;
+  isPaused = false;
+
+  if (exerciseIndex + 1 >= workout.workout.length) {
+    setStatus("Workout Complete 🎉");
+    return;
+  }
+
+  exerciseIndex++;
+  currentRound = 1;
+  currentRep = 0;
+  updateUI();
+
+  beginCountdownThenStart();
+}
+
+function skipExercise() {
+  if (!getCurrentExercise()) return;
+  unlockAudioIfNeeded();
+
+  // Go next immediately
+  safeClearTimers();
+  isCounting = false;
+  isResting = false;
+  isPaused = false;
+
+  if (exerciseIndex + 1 >= workout.workout.length) {
+    setStatus("Workout Complete 🎉");
+    return;
+  }
+
+  exerciseIndex++;
+  currentRound = 1;
+  currentRep = 0;
+  updateUI();
+
+  setStatus("Skipped ➡️", "warn");
+  beginCountdownThenStart();
+}
+
+function restartExercise() {
+  if (!getCurrentExercise()) return;
+  unlockAudioIfNeeded();
+
+  safeClearTimers();
+  isCounting = false;
+  isResting = false;
+  isPaused = false;
+
+  currentRound = 1;
+  currentRep = 0;
+  updateUI();
+
+  setStatus("Restarted", "warn");
+  beginCountdownThenStart();
+}
+
+function togglePause() {
+  if (!getCurrentExercise()) return;
+  unlockAudioIfNeeded();
+
+  isPaused = !isPaused;
+  if (isPaused) setStatus("Paused", "bad");
+  else setStatus(isResting ? elStatus.textContent : (isCounting ? "Go!" : ""), isResting ? "warn" : "");
+}
+
+function resetWorkout() {
+  safeClearTimers();
+
+  exerciseIndex = 0;
+  currentRound = 1;
+  currentRep = 0;
+
+  isPaused = false;
+  isResting = false;
+  isCounting = false;
+
+  updateUI();
+  setStatus("");
+}
+
+/* ======================
+   THEME TOGGLE (🌙)
+====================== */
+function setTheme(isLight) {
+  document.body.classList.toggle("light", isLight);
+  themeSwitch.dataset.on = String(isLight);
+  themeSwitch.setAttribute("aria-checked", String(isLight));
+  localStorage.setItem("workoutTheme", isLight ? "light" : "dark");
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("workoutTheme");
+  const isLight = saved === "light";
+  setTheme(isLight);
+}
+
+/* ======================
+   EVENTS
+====================== */
+startBtn.addEventListener("click", startOrResume);
+pauseBtn.addEventListener("click", togglePause);
+resetBtn.addEventListener("click", resetWorkout);
+
+skipBtn.addEventListener("click", skipExercise);
+restartExerciseBtn.addEventListener("click", restartExercise);
+
+themeSwitch.addEventListener("click", () => {
+  const currentlyOn = themeSwitch.dataset.on === "true";
+  setTheme(!currentlyOn);
+});
+
+/* Mobile: prevent double-tap zoom on buttons (optional) */
+for (const btn of [startBtn, pauseBtn, resetBtn, skipBtn, restartExerciseBtn, themeSwitch]) {
+  btn.addEventListener("touchend", (e) => e.preventDefault(), { passive: false });
+}
+
+/* ======================
+   INIT
+====================== */
+initTheme();
+updateUI();
+setStatus("Ready");
+</script>
+</body>
+</html>
