@@ -268,10 +268,22 @@ function setStatus(t,c=""){ els.status.className="status "+c; els.status.textCon
 
 function ensureAudio(){
   if(audioCtx) return audioCtx;
-  const C=window.AudioContext||window.webkitAudioContext;
-  audioCtx=new C();
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AudioCtx();
+
+  // iOS requires an actual sound to start the context
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  g.gain.value = 0;          // silent
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.01);
+
   return audioCtx;
 }
+
 
 function unlockAudio(){
   const c=ensureAudio();
@@ -344,7 +356,11 @@ function reset(){
   updateUI(); setStatus("Ready");
 }
 
-document.getElementById("startBtn").onclick=start;
+document.getElementById("startBtn").onclick = () => {
+  ensureAudio();        // must happen during the tap
+  audioCtx.resume();   // iOS requires this too
+  start();
+};
 document.getElementById("pauseBtn").onclick=togglePause;
 document.getElementById("resetBtn").onclick=reset;
 document.getElementById("skipBtn").onclick=nextExercise;
@@ -355,8 +371,8 @@ document.getElementById("themeSwitch").onclick=()=>{
   document.body.classList.toggle("light",!l);
 };
 
-document.addEventListener("touchstart", unlockAudio, { once:true });
-document.addEventListener("click", unlockAudio, { once:true });
+//document.addEventListener("touchstart", unlockAudio, { once:true });
+//document.addEventListener("click", unlockAudio, { once:true });
 
 updateUI(); setStatus("Ready");
 </script>
