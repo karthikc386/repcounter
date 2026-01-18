@@ -300,6 +300,17 @@ function beep(){
   o.start(); setTimeout(()=>o.stop(),50);
 }
 
+function tripleBeep(){
+  if(!settings.beepEnabled) return;
+  let count = 0;
+  const interval = setInterval(() => {
+    beep();
+    vibrate();
+    count++;
+    if(count === 3) clearInterval(interval);
+  }, 200);
+}
+
 function vibrate(){ if(settings.hapticEnabled && navigator.vibrate) navigator.vibrate(15); }
 
 function cue(){ beep(); vibrate(); }
@@ -324,12 +335,24 @@ function start(){
 }
 
 function runReps(){
-  const ex=getEx(); isCounting=true;
+  const ex=getEx();
+  isCounting=true;
+
   repInterval=setInterval(()=>{
     if(isPaused) return;
-    currentRep++; els.repCounter.textContent=currentRep; cue();
-    if(currentRep>=ex.repsPerRound){ clearTimers(); isCounting=false; nextRound(); }
-  },ex.secondsPerCount*1000);
+
+    currentRep++;
+    els.repCounter.textContent=currentRep;
+    cue();
+
+    if(currentRep >= ex.repsPerRound){
+      clearTimers();
+      isCounting=false;
+
+      tripleBeep(); // 👈 END OF ROUND SOUND
+      nextRound();
+    }
+  }, ex.secondsPerCount * 1000);
 }
 
 function nextRound(){
@@ -344,9 +367,37 @@ function nextRound(){
 }
 
 function nextExercise(){
-  if(++exerciseIndex>=workout.workout.length){ setStatus("Workout Complete 🎉"); return; }
-  currentRound=1; currentRep=0; updateUI(); start();
+  const restAfterExercise = 20;
+
+  // Workout finished
+  if(exerciseIndex + 1 >= workout.workout.length){
+    setStatus("Workout Complete 🎉");
+    tripleBeep();
+    return;
+  }
+
+  // Rest before next exercise
+  isResting = true;
+  let r = restAfterExercise;
+  setStatus(`Rest ${r} before next exercise`, "warn");
+
+  restInterval = setInterval(() => {
+    if(--r > 0){
+      setStatus(`Rest ${r} before next exercise`, "warn");
+    } else {
+      clearTimers();
+      isResting = false;
+
+      exerciseIndex++;
+      currentRound = 1;
+      currentRep = 0;
+
+      updateUI();
+      start();
+    }
+  }, 1000);
 }
+
 
 function togglePause(){ isPaused=!isPaused; setStatus(isPaused?"Paused":"Go!",isPaused?"bad":""); }
 
